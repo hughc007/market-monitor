@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import yfinance as yf
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from config import INSTRUMENTS, START_DATE, END_DATE
 import database as db
@@ -73,11 +73,19 @@ def run_pipeline():
     with db.get_connection() as conn:
         with conn.begin():
             for ticker, instrument in INSTRUMENTS.items():
-                if db.data_exists_for_range(ticker, START_DATE, END_DATE):
-                    summary.append((ticker, 0, 0, "skipped existing range"))
-                    continue
+                last_date = db.get_latest_date_for_ticker(ticker)
+                if last_date is not None:
+                    start_date = last_date + timedelta(days=1)
+                    if start_date < START_DATE:
+                        start_date = START_DATE
+                    if start_date > END_DATE:
+                        summary.append((ticker, 0, 0, "already current"))
+                        continue
+                else:
+                    start_date = START_DATE
 
-                df = yf.download(ticker, start=START_DATE.isoformat(), end=END_DATE.isoformat(), progress=False)
+                download_end = END_DATE + timedelta(days=1)
+                df = yf.download(ticker, start=start_date.isoformat(), end=download_end.isoformat(), progress=False)
                 if df.empty:
                     summary.append((ticker, 0, 0, "no data downloaded"))
                     continue

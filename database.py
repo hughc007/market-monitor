@@ -130,3 +130,9 @@ def data_exists_for_range(ticker, start_date, end_date):
         )
         count = conn.execute(stmt).scalar_one()
         return count > 0
+
+
+def get_latest_date_for_ticker(ticker):
+    with get_connection() as conn:
+        stmt = select(func.max(daily_prices.c.date)).where(daily_prices.c.ticker == ticker)
+        return conn.execute(stmt).scalar_one()
