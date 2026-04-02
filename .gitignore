@@ -1,0 +1,5 @@
+market_monitor.db
+*.db
+__pycache__/
+.venv/
+.DS_Store

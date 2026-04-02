@@ -207,7 +207,8 @@ def build_sidebar(close_df):
     min_date = close_df.index.min().date()
     max_date = close_df.index.max().date()
     start_date = st.sidebar.date_input("Start date", min_date, min_value=min_date, max_value=max_date)
-    end_date = st.sidebar.date_input("End date", max_date, min_value=min_date, max_value=max_date)
+    end_date = st.sidebar.date_input("Last data date", max_date, min_value=min_date, max_value=max_date)
+    st.sidebar.caption("Data updates each trading day when pipeline is run")
     if start_date > end_date:
         start_date, end_date = end_date, start_date
     selected = st.sidebar.multiselect("Show instruments", DEFAULT_SELECTION, default=DEFAULT_SELECTION)
