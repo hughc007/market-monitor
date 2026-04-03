@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import plotly.graph_objects as go
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 import database as db
 
@@ -417,6 +417,14 @@ def save_backtest_charts(results):
 
 def run_backtest(save_outputs=True):
     with db.get_connection() as conn:
+        stmt = select(db.signal_events.c.signal_type, func.count()).group_by(db.signal_events.c.signal_type)
+        counts = conn.execute(stmt).all()
+        print("Signal event counts before backtest:")
+        if counts:
+            for signal_type, count in counts:
+                print(f"- {signal_type}: {count}")
+        else:
+            print("- none")
         results = compute_backtest(conn)
     if save_outputs:
         save_backtest_charts(results)

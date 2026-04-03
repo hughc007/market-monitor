@@ -1,26 +1,26 @@
 # Weekly Desk Note
 
-Date: 2026-04-01
+Date: 2026-04-02
 
 ## Weekly Returns
-- AUDUSD=X: -2.24%
-- BZ=F: 12.85%
-- CL=F: 16.74%
-- STO.AX: 0.00%
-- WDS.AX: 1.24%
+- AUDUSD=X: -0.92%
+- BZ=F: -0.27%
+- CL=F: 12.61%
+- STO.AX: 2.93%
+- WDS.AX: 1.60%
 
 ## Spread Overview
 
-- Latest Brent-WTI spread: 9.90 USD
-- 90-day mean spread: 5.26 USD
-- 90-day spread standard deviation: 2.48 USD
-- Current spread z-score: 1.87
+- Latest Brent-WTI spread: 1.33 USD
+- 90-day mean spread: 5.33 USD
+- 90-day spread standard deviation: 2.83 USD
+- Current spread z-score: -1.42
 
 ## Volatility Regime
 
-- BZ=F: latest 73.59% vs average 31.14% -> elevated
-- WDS.AX: latest 35.08% vs average 23.53% -> elevated
-- STO.AX: latest 32.25% vs average 26.28% -> elevated
+- BZ=F: latest 89.38% vs average 31.66% -> elevated
+- WDS.AX: latest 35.28% vs average 23.56% -> elevated
+- STO.AX: latest 31.94% vs average 26.28% -> elevated
 
 ## Correlation Update
 
@@ -29,13 +29,14 @@ Date: 2026-04-01
 
 ## Signals in the Last 7 Days
 
+- 2026-04-02: VOLATILITY_SPIKE (0.894) | BZ=F=107.7200, CL=F=106.3900, AUDUSD=X=0.6879, WDS.AX=34.9300, STO.AX=8.0800
+- 2026-04-01: VOLATILITY_SPIKE (0.886) | BZ=F=101.1600, CL=F=100.1200, AUDUSD=X=0.6921, WDS.AX=35.0900, STO.AX=7.9700
+- 2026-03-31: SPREAD_DISLOCATION (4.190) | BZ=F=118.3500, CL=F=101.3800, AUDUSD=X=0.6846, WDS.AX=35.0500, STO.AX=7.9600
 - 2026-03-30: VOLATILITY_SPIKE (0.736) | BZ=F=112.7800, CL=F=102.8800, AUDUSD=X=0.6851, WDS.AX=35.2200, STO.AX=8.0500
 - 2026-03-27: VOLATILITY_SPIKE (0.736) | BZ=F=112.5700, CL=F=99.6400, AUDUSD=X=0.6887, WDS.AX=34.4700, STO.AX=7.9500
 - 2026-03-27: SPREAD_DISLOCATION (3.184) | BZ=F=112.5700, CL=F=99.6400, AUDUSD=X=0.6887, WDS.AX=34.4700, STO.AX=7.9500
 - 2026-03-26: VOLATILITY_SPIKE (0.743) | BZ=F=108.0100, CL=F=94.4800, AUDUSD=X=0.6943, WDS.AX=34.3800, STO.AX=7.8500
 - 2026-03-26: SPREAD_DISLOCATION (3.685) | BZ=F=108.0100, CL=F=94.4800, AUDUSD=X=0.6943, WDS.AX=34.3800, STO.AX=7.8500
-- 2026-03-25: VOLATILITY_SPIKE (0.733) | BZ=F=102.2200, CL=F=90.3200, AUDUSD=X=0.6997, WDS.AX=33.6200, STO.AX=7.6600
-- 2026-03-25: SPREAD_DISLOCATION (3.276) | BZ=F=102.2200, CL=F=90.3200, AUDUSD=X=0.6997, WDS.AX=33.6200, STO.AX=7.6600
 
 ## Notes
 

@@ -55,8 +55,6 @@ def signal_exists(conn, ticker: str, event_date: date, signal_type: str) -> bool
 
 
 def log_signal(conn, ticker: str, event_date: date, signal_type: str, signal_value: float, threshold: float, market_context: str):
-    if signal_exists(conn, ticker, event_date, signal_type):
-        return False
     conn.execute(
         db.signal_events.insert().values(
             ticker=ticker,
@@ -77,6 +75,7 @@ def run_signals():
     today = date.today()
     with db.get_connection() as conn:
         with conn.begin():
+            conn.execute(db.signal_events.delete())
             metrics = read_rolling_metrics(conn)
             if metrics.empty:
                 return events

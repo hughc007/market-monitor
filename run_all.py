@@ -6,6 +6,7 @@ SCRIPTS = [
     "ingest.py",
     "analysis.py",
     "signals.py",
+    "backtest.py",
     "charts.py",
     "desk_note.py",
 ]
