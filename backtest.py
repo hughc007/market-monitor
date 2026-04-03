@@ -172,18 +172,21 @@ def compute_hit(signal_type, signal_value, future_value):
 def build_event_study(signal_type, event_dates, trading_calendar, series):
     if not event_dates or series.empty:
         return pd.DataFrame()
+
+    # Use the metric series index (available data points) as the event study calendar.
+    metric_calendar = series.index
     event_study = {}
     pre = EVENT_STUDY_WINDOW
     post = EVENT_STUDY_WINDOW * 2
     for event_date in event_dates:
-        if event_date not in trading_calendar:
+        if event_date not in metric_calendar:
             continue
-        idx = trading_calendar.get_loc(event_date)
+        idx = metric_calendar.get_loc(event_date)
         start = idx - pre
         end = idx + post
-        if start < 0 or end >= len(trading_calendar):
+        if start < 0 or end >= len(metric_calendar):
             continue
-        window_dates = trading_calendar[start : end + 1]
+        window_dates = metric_calendar[start : end + 1]
         values = series.reindex(window_dates)
         if values.isna().any():
             continue
