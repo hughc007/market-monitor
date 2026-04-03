@@ -7,10 +7,11 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from sqlalchemy import text
+from sqlalchemy import text, func, select
 
 import backtest
 import database as db
+import signals as signals_module
 from config import INSTRUMENTS
 
 NOTE_FILE = Path("outputs/notes/weekly_note.md")
@@ -328,6 +329,22 @@ def main():
         "Thin grey lines are individual event trajectories and the bold coloured line is the average response."
     )
     with db.get_connection() as conn:
+        total_signals = conn.execute(select(func.count()).select_from(db.signal_events)).scalar()
+        type_counts = conn.execute(select(db.signal_events.c.signal_type, func.count()).group_by(db.signal_events.c.signal_type)).all()
+
+        st.write("### Signal events from database before backtest")
+        st.write(f"Total signal_events rows: {total_signals}")
+        st.write(type_counts)
+
+        if total_signals == 0:
+            st.warning("No signal events found; running signals.py now to generate signals.")
+            signals_module.run_signals()
+            total_signals = conn.execute(select(func.count()).select_from(db.signal_events)).scalar()
+            type_counts = conn.execute(select(db.signal_events.c.signal_type, func.count()).group_by(db.signal_events.c.signal_type)).all()
+            st.write("Signal events after running signals:")
+            st.write(f"Total signal_events rows: {total_signals}")
+            st.write(type_counts)
+
         backtest_results = backtest.compute_backtest(conn)
 
     if not backtest_results:
