@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 from datetime import date, datetime
@@ -233,19 +234,24 @@ def main():
     if "last_refreshed" not in st.session_state:
         st.session_state["last_refreshed"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    is_cloud = os.path.exists('/home/adminuser')
+
     col1, col2 = st.columns([3, 1])
     with col1:
         st.write(f"**Date:** {date.today().isoformat()}")
         st.write(f"**Last refreshed:** {st.session_state['last_refreshed']}")
     with col2:
-        if st.button("Refresh Data"):
-            with st.spinner("Refreshing full pipeline..."):
-                try:
-                    run_refresh()
-                    st.session_state["last_refreshed"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    st.success("Data refresh complete.")
-                except subprocess.CalledProcessError as exc:
-                    st.error(f"Refresh failed: {exc}")
+        if is_cloud:
+            st.info("Data refreshes automatically each trading day")
+        else:
+            if st.button("Refresh Data"):
+                with st.spinner("Refreshing full pipeline..."):
+                    try:
+                        run_refresh()
+                        st.session_state["last_refreshed"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        st.success("Data refresh complete.")
+                    except subprocess.CalledProcessError as exc:
+                        st.error(f"Refresh failed: {exc}")
 
     with db.get_connection() as conn:
         close_df = get_close_prices(conn)
