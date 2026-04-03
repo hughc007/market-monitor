@@ -29,7 +29,7 @@ def clean_price_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def validate_and_fix_price_data(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
+def validate_and_fix_price_data(df: pd.DataFrame, ticker: str, prior_close: float | None = None) -> pd.DataFrame:
     if df.empty or ticker not in PRICE_SANITY_RANGES:
         return df
 
@@ -38,11 +38,24 @@ def validate_and_fix_price_data(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
 
     low, high = PRICE_SANITY_RANGES[ticker]
     invalid = (df["close"] < low) | (df["close"] > high)
+
+    # Detect large intraday contract rollover anomalies as well for futures, e.g. Brent front-month spike/dip near expiry.
+    if ticker in ["BZ=F", "CL=F"]:
+        prev_close_series = df["close"].shift(1)
+        large_jump = (df["close"] / prev_close_series - 1).abs() > 0.20
+        invalid = invalid | large_jump
+
+        # Check first row against prior database close if available
+        if prior_close is not None and len(df) > 0:
+            first_close = df.iloc[0]["close"]
+            if prior_close > 0 and abs(first_close / prior_close - 1) > 0.20:
+                invalid.iloc[0] = True
+
     if not invalid.any():
         return df
 
     count = int(invalid.sum())
-    print(f"Warning: {ticker} has {count} out-of-range close values outside [{low}, {high}]. Applying forward fill replacement.")
+    print(f"Warning: {ticker} has {count} price anomaly values. Applying forward fill replacement.")
 
     df.loc[invalid, "close"] = np.nan
     df["close"] = df["close"].ffill()
@@ -64,6 +77,13 @@ def clean_existing_bad_data(conn):
             continue
 
         valid_mask = ticker_df["close"].between(low, high, inclusive="both")
+
+        # Add large jump detection for strong futures rollover anomalies
+        if ticker in ["BZ=F", "CL=F"]:
+            prev_close = ticker_df["close"].shift(1)
+            large_jump = (ticker_df["close"] / prev_close - 1).abs() > 0.20
+            valid_mask = valid_mask & ~large_jump
+
         invalid_df = ticker_df[~valid_mask].copy()
         if invalid_df.empty:
             continue
@@ -155,7 +175,15 @@ def run_pipeline():
                     start_date = START_DATE
 
                 download_end = END_DATE + timedelta(days=1)
-                df = yf.download(ticker, start=start_date.isoformat(), end=download_end.isoformat(), progress=False)
+                # BZ=F is the Brent front month futures contract. Near expiry the price diverges from the active contract.
+                # Use auto_adjust=True to handle rollovers automatically.
+                df = yf.download(
+                    ticker,
+                    start=start_date.isoformat(),
+                    end=download_end.isoformat(),
+                    progress=False,
+                    auto_adjust=True,
+                )
                 if df.empty:
                     summary.append((ticker, 0, 0, "no data downloaded"))
                     continue
@@ -165,7 +193,12 @@ def run_pipeline():
                     summary.append((ticker, 0, 0, "cleaned data empty"))
                     continue
 
-                df = validate_and_fix_price_data(df, ticker)
+                prior_close = None
+                if last_date is not None:
+                    prior_stmt = db.daily_prices.select().with_only_columns(db.daily_prices.c.close).where(db.daily_prices.c.ticker == ticker, db.daily_prices.c.date == last_date)
+                    prior_close = conn.execute(prior_stmt).scalar_one_or_none()
+
+                df = validate_and_fix_price_data(df, ticker, prior_close)
 
                 price_rows = insert_daily_prices(conn, ticker, df)
                 returns = calculate_log_returns(df)

@@ -1,5 +1,7 @@
 from datetime import date, timedelta
 
+# NOTE: BZ=F is the Brent front month futures contract. Near expiry the price diverges from the active contract.
+# Use auto_adjust=True to handle rollovers automatically when downloading via yfinance.
 INSTRUMENTS = {
     "BZ=F": {
         "display_name": "Brent Crude",
