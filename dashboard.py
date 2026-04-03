@@ -328,23 +328,32 @@ def main():
         "### Event studies show each signal's metric path normalized to zero on the signal date. "
         "Thin grey lines are individual event trajectories and the bold coloured line is the average response."
     )
+    total_signals = None
+    type_counts = None
+
     with db.get_connection() as conn:
         total_signals = conn.execute(select(func.count()).select_from(db.signal_events)).scalar()
         type_counts = conn.execute(select(db.signal_events.c.signal_type, func.count()).group_by(db.signal_events.c.signal_type)).all()
 
-        st.write("### Signal events from database before backtest")
+    st.write("### Signal events from database before backtest")
+    st.write(f"Total signal_events rows: {total_signals}")
+    st.write(type_counts)
+
+    if total_signals == 0:
+        st.warning("No signal events found; running ingest -> analysis -> signals to generate data.")
+        subprocess.run([sys.executable, "ingest.py"], check=True)
+        subprocess.run([sys.executable, "analysis.py"], check=True)
+        subprocess.run([sys.executable, "signals.py"], check=True)
+
+        with db.get_connection() as conn:
+            total_signals = conn.execute(select(func.count()).select_from(db.signal_events)).scalar()
+            type_counts = conn.execute(select(db.signal_events.c.signal_type, func.count()).group_by(db.signal_events.c.signal_type)).all()
+
+        st.write("Signal events after running pipeline:")
         st.write(f"Total signal_events rows: {total_signals}")
         st.write(type_counts)
 
-        if total_signals == 0:
-            st.warning("No signal events found; running signals.py now to generate signals.")
-            signals_module.run_signals()
-            total_signals = conn.execute(select(func.count()).select_from(db.signal_events)).scalar()
-            type_counts = conn.execute(select(db.signal_events.c.signal_type, func.count()).group_by(db.signal_events.c.signal_type)).all()
-            st.write("Signal events after running signals:")
-            st.write(f"Total signal_events rows: {total_signals}")
-            st.write(type_counts)
-
+    with db.get_connection() as conn:
         backtest_results = backtest.compute_backtest(conn)
 
     if not backtest_results:

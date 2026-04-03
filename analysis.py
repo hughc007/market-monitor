@@ -7,11 +7,16 @@ import database as db
 
 
 def fetch_prices(conn, ticker: str) -> pd.DataFrame:
-    stmt = select(db.daily_prices).where(db.daily_prices.c.ticker == ticker).order_by(db.daily_prices.c.date)
+    stmt = select(db.daily_prices).where(db.daily_prices.c.ticker == ticker).order_by(db.daily_prices.c.date, db.daily_prices.c.created_at)
     df = pd.read_sql(stmt, conn)
     if df.empty:
         return df
     df["date"] = pd.to_datetime(df["date"]).dt.date
+    # Deduplicate by ticker/date keeping the most recent row
+    if "created_at" in df.columns:
+        df = df.sort_values(["date", "created_at"]).drop_duplicates(subset=["date"], keep="last")
+    else:
+        df = df.drop_duplicates(subset=["date"], keep="last")
     return df.set_index("date")
 
 

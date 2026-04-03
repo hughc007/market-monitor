@@ -13,6 +13,7 @@ from sqlalchemy import (
     select,
     func,
     and_,
+    text,
 )
 
 DATABASE_FILE = Path("market_monitor.db")
@@ -136,3 +137,18 @@ def get_latest_date_for_ticker(ticker):
     with get_connection() as conn:
         stmt = select(func.max(daily_prices.c.date)).where(daily_prices.c.ticker == ticker)
         return conn.execute(stmt).scalar_one()
+
+
+def dedupe_daily_prices(conn):
+    # Keep only the most recent row for each ticker/date combination.
+    # rowid is SQLite internal row identifier and increases for each inserted row.
+    conn.execute(
+        text(
+            """
+            DELETE FROM daily_prices
+            WHERE rowid NOT IN (
+                SELECT MAX(rowid) FROM daily_prices GROUP BY ticker, date
+            )
+            """
+        )
+    )

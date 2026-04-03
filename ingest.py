@@ -100,6 +100,9 @@ def run_pipeline():
                 return_rows = insert_daily_returns(conn, ticker, returns)
                 summary.append((ticker, price_rows, return_rows, "loaded"))
 
+            # Deduplicate after inserting all prices for this run in the transaction
+            db.dedupe_daily_prices(conn)
+
     return summary
 
 
