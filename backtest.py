@@ -169,37 +169,68 @@ def compute_hit(signal_type, signal_value, future_value):
     return SIGNAL_METRIC_CONFIG[signal_type]["hit_fn"](signal_value, future_value)
 
 
-def build_event_study(signal_type, event_dates, trading_calendar, series):
+def build_event_study(signal_type, event_dates, trading_calendar, series, allow_partial=False, min_forward=10):
     if not event_dates or series.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(), 0
 
-    # Use the metric series index (available data points) as the event study calendar.
     metric_calendar = series.index
     event_study = {}
     pre = EVENT_STUDY_WINDOW
     post = EVENT_STUDY_WINDOW * 2
+    truncated_count = 0
+
     for event_date in event_dates:
         if event_date not in metric_calendar:
             continue
         idx = metric_calendar.get_loc(event_date)
         start = idx - pre
-        end = idx + post
-        if start < 0 or end >= len(metric_calendar):
+        if start < 0:
             continue
+
+        available_forward = len(metric_calendar) - 1 - idx
+        if available_forward < min_forward:
+            continue
+
+        truncated = available_forward < post
+        end = idx + post if not truncated else len(metric_calendar) - 1
+
         window_dates = metric_calendar[start : end + 1]
         values = series.reindex(window_dates)
-        if values.isna().any():
+
+        # ensure pre-event and event are present
+        if values.iloc[: pre + 1].isna().any():
             continue
+
+        # allow truncated windows only when requested
+        if not allow_partial and values.isna().any():
+            continue
+
         normed = values - values.iloc[pre]
-        event_study[event_date.strftime("%Y-%m-%d")] = normed.values
+
+        # Build a full 61-length window with NaN padding for truncated periods
+        full_length = pre + post + 1
+        full_index = list(range(-pre, post + 1))
+        full_values = pd.Series([float("nan")] * full_length, index=full_index)
+
+        # Map current values into relative index span
+        event_rel_start = -pre
+        event_rel_end = event_rel_start + len(normed) - 1
+        full_values.loc[event_rel_start : event_rel_end] = normed.values
+
+        if truncated:
+            truncated_count += 1
+
+        # Convert to numpy array with full length
+        event_study[event_date.strftime("%Y-%m-%d")] = full_values.values
 
     if not event_study:
-        return pd.DataFrame()
+        return pd.DataFrame(), truncated_count
+
     index = list(range(-pre, post + 1))
-    return pd.DataFrame(event_study, index=index)
+    return pd.DataFrame(event_study, index=index), truncated_count
 
 
-def build_event_study_figure(signal_type, event_study_df):
+def build_event_study_figure(signal_type, event_study_df, truncated_count=0):
     config = SIGNAL_METRIC_CONFIG[signal_type]
     fig = go.Figure()
     if event_study_df.empty:
@@ -230,9 +261,12 @@ def build_event_study_figure(signal_type, event_study_df):
         )
     )
     fig.add_vline(x=0, line_dash="dash", line_color="white", opacity=0.8)
+    subtitle = ""
+    if truncated_count > 0:
+        subtitle = f"<br><small>{truncated_count} event(s) have truncated forward windows (>=10 days required).</small>"
     fig.update_layout(
         template="plotly_dark",
-        title=f"{config['display_name']} — Event Study (n={len(event_study_df.columns)})",
+        title=f"{config['display_name']} — Event Study (n={len(event_study_df.columns)}){subtitle}",
         xaxis_title="Trading days relative to signal date",
         yaxis_title="Normalised metric",
         legend=dict(bgcolor="rgba(0,0,0,0.5)", bordercolor="white", borderwidth=1),
@@ -316,13 +350,15 @@ def compute_backtest(conn, cooldown_days=10):
             if stats is not None:
                 horizon_stats[horizon] = stats
 
-        event_study_df = build_event_study(signal_type, events["date"].tolist(), trading_calendar, metric_series)
-        figure = build_event_study_figure(signal_type, event_study_df)
+        allow_partial = signal_type == "VOLATILITY_SPIKE"
+        event_study_df, truncated_count = build_event_study(signal_type, events["date"].tolist(), trading_calendar, metric_series, allow_partial=allow_partial)
+        figure = build_event_study_figure(signal_type, event_study_df, truncated_count)
         results[signal_type] = {
             "filtered_events": events,
             "horizon_stats": horizon_stats,
             "event_study": event_study_df,
             "figure": figure,
+            "truncated_events": truncated_count,
         }
 
     return results
