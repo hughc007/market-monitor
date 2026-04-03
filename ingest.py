@@ -7,6 +7,15 @@ from config import INSTRUMENTS, START_DATE, END_DATE
 import database as db
 
 
+PRICE_SANITY_RANGES = {
+    "BZ=F": (40.0, 200.0),
+    "CL=F": (40.0, 200.0),
+    "AUDUSD=X": (0.50, 0.90),
+    "WDS.AX": (10.0, 60.0),
+    "STO.AX": (3.0, 20.0),
+}
+
+
 def clean_price_data(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
@@ -18,6 +27,67 @@ def clean_price_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.ffill()
     df = df.dropna(how="all", subset=["open", "high", "low", "close", "volume"])
     return df
+
+
+def validate_and_fix_price_data(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
+    if df.empty or ticker not in PRICE_SANITY_RANGES:
+        return df
+
+    if "close" not in df.columns:
+        return df
+
+    low, high = PRICE_SANITY_RANGES[ticker]
+    invalid = (df["close"] < low) | (df["close"] > high)
+    if not invalid.any():
+        return df
+
+    count = int(invalid.sum())
+    print(f"Warning: {ticker} has {count} out-of-range close values outside [{low}, {high}]. Applying forward fill replacement.")
+
+    df.loc[invalid, "close"] = np.nan
+    df["close"] = df["close"].ffill()
+    return df
+
+
+def clean_existing_bad_data(conn):
+    stmt = db.daily_prices.select().order_by(db.daily_prices.c.ticker, db.daily_prices.c.date, db.daily_prices.c.created_at)
+    df = pd.read_sql(stmt, conn)
+    if df.empty:
+        print("No daily_prices rows found for cleaning.")
+        return 0
+
+    total_cleaned = 0
+
+    for ticker, (low, high) in PRICE_SANITY_RANGES.items():
+        ticker_df = df[df["ticker"] == ticker].sort_values("date")
+        if ticker_df.empty:
+            continue
+
+        valid_mask = ticker_df["close"].between(low, high, inclusive="both")
+        invalid_df = ticker_df[~valid_mask].copy()
+        if invalid_df.empty:
+            continue
+
+        ticker_df.loc[~valid_mask, "close"] = np.nan
+        ticker_df["close"] = ticker_df["close"].ffill()
+
+        cleaned_rows = 0
+        for idx, row in invalid_df.iterrows():
+            new_close = ticker_df.loc[idx, "close"]
+            if pd.isna(new_close):
+                continue
+            conn.execute(
+                db.daily_prices.update()
+                .where(db.daily_prices.c.id == int(row["id"]))
+                .values(close=float(new_close))
+            )
+            cleaned_rows += 1
+
+        total_cleaned += cleaned_rows
+        print(f"Cleaned {cleaned_rows} rows for {ticker} (range [{low}, {high}]).")
+
+    print(f"Total cleaned rows: {total_cleaned}")
+    return total_cleaned
 
 
 def calculate_log_returns(df: pd.DataFrame) -> pd.Series:
@@ -94,6 +164,8 @@ def run_pipeline():
                 if df.empty:
                     summary.append((ticker, 0, 0, "cleaned data empty"))
                     continue
+
+                df = validate_and_fix_price_data(df, ticker)
 
                 price_rows = insert_daily_prices(conn, ticker, df)
                 returns = calculate_log_returns(df)
