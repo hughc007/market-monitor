@@ -4,17 +4,17 @@ Date: 2026-04-03
 
 ## Weekly Returns
 - AUDUSD=X: 0.38%
-- BZ=F: -0.27%
-- CL=F: 12.61%
+- BZ=F: -28.78%
+- CL=F: -24.30%
 - STO.AX: 2.93%
 - WDS.AX: 1.60%
 
 ## Spread Overview
 
-- Latest Brent-WTI spread: 1.33 USD
-- 90-day mean spread: 5.33 USD
-- 90-day spread standard deviation: 2.83 USD
-- Current spread z-score: -1.42
+- Latest Brent-WTI spread: 5.40 USD
+- 90-day mean spread: 5.38 USD
+- 90-day spread standard deviation: 2.79 USD
+- Current spread z-score: 0.01
 
 ## Volatility Regime
 
@@ -24,12 +24,12 @@ Date: 2026-04-03
 
 ## Correlation Update
 
-- Brent vs WDS.AX: 0.96
-- Brent vs STO.AX: 0.94
+- Brent vs WDS.AX: 0.93
+- Brent vs STO.AX: 0.91
 
 ## Signals in the Last 7 Days
 
-- 2026-04-02: VOLATILITY_SPIKE (0.894) | BZ=F=107.7200, CL=F=106.3900, AUDUSD=X=0.6879, WDS.AX=34.9300, STO.AX=8.0800
+- 2026-04-02: VOLATILITY_SPIKE (0.894) | BZ=F=76.9200, CL=F=71.5200, AUDUSD=X=0.6879, WDS.AX=34.9300, STO.AX=8.0800
 - 2026-04-01: VOLATILITY_SPIKE (0.886) | BZ=F=101.1600, CL=F=100.1200, AUDUSD=X=0.6921, WDS.AX=35.0900, STO.AX=7.9700
 - 2026-03-31: SPREAD_DISLOCATION (4.190) | BZ=F=118.3500, CL=F=101.3800, AUDUSD=X=0.6846, WDS.AX=35.0500, STO.AX=7.9600
 - 2026-03-30: VOLATILITY_SPIKE (0.736) | BZ=F=112.7800, CL=F=102.8800, AUDUSD=X=0.6851, WDS.AX=35.2200, STO.AX=8.0500

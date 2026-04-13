@@ -1,0 +1,45 @@
+name: Automated Daily Data Pipeline
+
+on:
+  schedule:
+    # Runs every weekday at 9pm UTC (7am AEST Sydney time next morning)
+    - cron: '0 21 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Run ingest.py
+        run: python ingest.py
+      
+      - name: Run analysis.py
+        run: python analysis.py
+      
+      - name: Run signals.py
+        run: python signals.py
+      
+      - name: Run backtest.py
+        run: python backtest.py
+      
+      - name: Commit and push updated database
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add market_monitor.db
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update market data $(date -u +'%Y-%m-%d')" && git push origin main)
